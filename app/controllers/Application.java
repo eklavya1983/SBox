@@ -1,112 +1,35 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.LongNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import play.*;
+import models.Entry;
+import play.libs.Json;
 import play.mvc.*;
-import play.db.*;
-import play.Logger.*;
+import play.db.jpa.JPA;
 
 import views.html.*;
 
-import java.sql.*;
+import javax.persistence.Query;
+import java.util.List;
 
 public class Application extends Controller {
-    private static final String TABLE_CREATE =
-            "CREATE TABLE ENTRIES " +
-                    "(id INTEGER PRIMARY KEY AUTOINCREMENT,  " +
-                    "userid VARCHAR(255),  " +
-                    "timestamp LONG, " +
-                    "location VARCHAR(255), " +
-                    "type VARCHAR(255), " +
-                    "uri VARCHAR(255), " +
-                    "text VARCHAR(255))";
-
-    private static final String ENTRY_INSERT_TEMPL =
-            "INSERT INTO ENTRIES (userid, timestamp, location, type, uri, text) " +
-            "VALUES (?, ?, ?, ?, ?, ?)";
-
     public static Result index() {
         return ok(index.render("Your new application is ready."));
     }
 
-    public static Result createTable() {
-        Logger.info("Creating table..");
-        Connection connection = DB.getConnection();
-        Statement st = null;
-        try {
-            st = connection.createStatement();
-            st.executeUpdate(TABLE_CREATE);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (st != null) {
-                try {
-                    st.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+    @play.db.jpa.Transactional
+    public static Result insertEntry() {
+        Http.RequestBody body = request().body();
+        JsonNode jsonNode = body.asJson();
+        Entry entry = Json.fromJson(jsonNode, Entry.class);
+        JPA.em().persist(entry);
         return Results.ok();
     }
 
-    public static Result insertEntry() {
-        /* Extract data from the schema */
-        long entryId = -1;
-        ObjectNode objNode = (ObjectNode) request().body().asJson();
-        String userid = objNode.get("userid").asText();
-        long timestamp = objNode.get("timestamp").asLong();
-        String location = objNode.get("location").asText();
-        String type = objNode.get("type").asText();
-        String uri = objNode.get("uri").asText();
-        String text = objNode.get("text").asText();
-
-        /* Update database */
-        Connection connection = DB.getConnection();
-        PreparedStatement st = null;
-        try {
-            st = connection.prepareStatement(ENTRY_INSERT_TEMPL, new String[] {"id"});
-            st.setString(1, userid);
-            st.setLong(2, timestamp);
-            st.setString(3, location);
-            st.setString(4, type);
-            st.setString(5, uri);
-            st.setString(6, text);
-            int res = st.executeUpdate();
-            if (res > 0) {
-                ResultSet genKeys = st.getGeneratedKeys();
-                if (genKeys != null && genKeys.next()){
-                    entryId = genKeys.getLong(1);
-                    Logger.info("Generated id: " + entryId);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (st != null) {
-                try {
-                    st.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        if (entryId >= 0) {
-            return Results.ok(new LongNode(entryId));
-        }
-        return Results.internalServerError();
+    @play.db.jpa.Transactional(readOnly=true)
+    public static Result getResults() {
+        Query q = JPA.em().createQuery("Select e from Entry e");
+        List<Entry> list = q.getResultList();
+        return Results.ok(Json.toJson(list));
     }
 
     public static Result search() {
