@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * Created on 1/14/15.
@@ -19,6 +20,16 @@ public class Entry {
     private String mimeType;
     private String uri;
     private String text;
+    @ElementCollection
+    private List<String> contexts;
+
+    public List<String> getContexts() {
+        return contexts;
+    }
+
+    public void setContexts(List<String> contexts) {
+        this.contexts = contexts;
+    }
 
     public long getEid() {
         return eid;
