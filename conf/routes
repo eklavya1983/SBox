@@ -4,8 +4,8 @@
 
 # Home page
 GET        /                    controllers.Application.index
-GET        /results             controllers.Application.getResults
 PUT        /entry               controllers.Application.insertEntry
+GET        /entry               controllers.Application.getEntry
 GET        /entries             controllers.Application.getEntries
 
 # Map static resources from the /public folder to the /assets URL path

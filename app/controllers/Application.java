@@ -31,8 +31,9 @@ public class Application extends Controller {
                 .stream()
                 .map(ic -> {
                     /* See if the context exists already */
-                    TypedQuery<Context> query = JPA.em().createNamedQuery("Context.find", Context.class);
+                    TypedQuery<Context> query = JPA.em().createNamedQuery("Context.search", Context.class);
                     query.setParameter("name", ic.getName());
+                    // TODO(ekl): Get userid from session
                     query.setParameter("userid", entry.getUserid());
                     List<Context> resultList = query.getResultList();
                     if (resultList == null || resultList.size() == 0) {
@@ -86,5 +87,12 @@ public class Application extends Controller {
         query.setParameter("cName", cName);
         List<Entry> resultList = query.getResultList();
         return Results.ok(Json.toJson(resultList));
+    }
+
+    @play.db.jpa.Transactional(readOnly=true)
+    public static Result getEntry() {
+        long eid = Long.parseLong(request().getQueryString("eid"));
+        Entry e  = JPA.em().find(Entry.class, eid);
+        return Results.ok(Json.toJson(e));
     }
 }

@@ -10,7 +10,7 @@ import java.util.List;
  */
 // TODO(eklavya1983): Make combination of tag name + uid as the key
 @Entity
-@NamedQuery(name="Context.find", query = "SELECT c FROM Context c WHERE c.name = :name AND c.userid = :userid")
+@NamedQuery(name="Context.search", query = "SELECT c FROM Context c WHERE c.name = :name AND c.userid = :userid")
 public class Context {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
