@@ -1,7 +1,7 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import models.EntryContext;
+import models.Context;
 import models.Entry;
 import play.Logger;
 import play.libs.Json;
@@ -14,12 +14,12 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Application extends Controller {
     public static Result index() {
         return ok(index.render("Your new application is ready."));
     }
-
     @play.db.jpa.Transactional
     public static Result insertEntry() {
         /* Parse out entry */
@@ -27,31 +27,27 @@ public class Application extends Controller {
         JsonNode jsonNode = body.asJson();
         Entry entry = Json.fromJson(jsonNode, Entry.class);
 
-        /* First persist the entry */
+        List<Context> contexts = entry.getContexts()
+                .stream()
+                .map(ic -> {
+                    /* See if the context exists already */
+                    TypedQuery<Context> query = JPA.em().createNamedQuery("Context.find", Context.class);
+                    query.setParameter("name", ic.getName());
+                    query.setParameter("userid", entry.getUserid());
+                    List<Context> resultList = query.getResultList();
+                    if (resultList == null || resultList.size() == 0) {
+                        Logger.info("New context: " + ic.getName());
+                        // TODO: Possible side effect
+                        ic.setUserid(entry.getUserid());
+                        return ic;
+                    } else {
+                        // TODO: assert
+                        return resultList.get(0);
+                    }
+                })
+                .collect(Collectors.toList());
+        entry.setContexts(contexts);
         JPA.em().persist(entry);
-        Logger.info("Added new entry: " + entry.getEid());
-
-        /* Update the tags */
-        entry.getContexts().stream().forEach(cName -> {
-            EntryContext ec;
-            TypedQuery<EntryContext> query = JPA.em().createNamedQuery("EntryContext.find", EntryContext.class);
-            query.setParameter("name", cName);
-            query.setParameter("userid", entry.getUserid());
-            List<EntryContext> resultList = query.getResultList();
-            if (resultList == null || resultList.size() == 0) {
-                Logger.info("Adding new context: " + cName);
-                ec = new EntryContext();
-                ec.setName(cName);
-                ec.setUserid(entry.getUserid());
-                ec.setEntries(new ArrayList<Entry>());
-            } else {
-                assert(resultList.size() == 1);
-                ec = resultList.get(0);
-            }
-            ec.getEntries().add(entry);
-            JPA.em().persist(ec);
-            Logger.info("Added/updated context: " + ec.getId());
-        });
 
         return Results.ok(Json.toJson(entry.getEid()));
     }
@@ -81,18 +77,14 @@ public class Application extends Controller {
         return Results.ok(Json.toJson(list));
     }
 
+    @play.db.jpa.Transactional(readOnly=true)
     public static Result getEntries() {
-        String cName = request().queryString("cName");
+        String cName = request().getQueryString("cName");
         // TODO: Get from session
         String userid = "Rao";
-        List<Entry> entries = null;
-        TypedQuery<EntryContext> query = JPA.em().createNamedQuery("EntryContext.find", EntryContext.class);
-        query.setParameter("name", cName);
-        query.setParameter("userid", userid);
-        List<EntryContext> resultList = query.getResultList();
-        if (resultList != null && resultList.size() > 0) {
-            entries = resultList.get(0).getEntries();
-        }
-        return Results.ok(Json.toJson(entries));
+        TypedQuery<Entry> query = JPA.em().createNamedQuery("Entry.search", Entry.class);
+        query.setParameter("cName", cName);
+        List<Entry> resultList = query.getResultList();
+        return Results.ok(Json.toJson(resultList));
     }
 }

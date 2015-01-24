@@ -1,0 +1,16 @@
+{
+  "userid": "Rao",
+  "timestamp": 3,
+  "location": "123, 234",
+  "mimeType": "text",
+  "uri": "localhost",
+  "text": "Local entry3",
+  "contexts": [
+    {
+      "name" : "airport"
+    },
+    {
+      "name" : "with mom"
+    }
+  ]
+}

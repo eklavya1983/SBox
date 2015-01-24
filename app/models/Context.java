@@ -1,5 +1,7 @@
 package models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.util.List;
 
@@ -8,14 +10,15 @@ import java.util.List;
  */
 // TODO(eklavya1983): Make combination of tag name + uid as the key
 @Entity
-@NamedQuery(name="EntryContext.find", query = "SELECT c FROM EntryContext c WHERE c.name = :name AND c.userid = :userid")
-public class EntryContext {
+@NamedQuery(name="Context.find", query = "SELECT c FROM Context c WHERE c.name = :name AND c.userid = :userid")
+public class Context {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     private long id;
     private String name;
     private String userid;
-    @OneToMany
+    @ManyToMany(mappedBy = "contexts")
+    @JsonIgnore
     private List<Entry> entries;
 
     public long getId() {

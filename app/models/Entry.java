@@ -3,13 +3,13 @@ package models;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
-import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created on 1/14/15.
  */
 @Entity
+@NamedQuery(name = "Entry.search", query = "SELECT e FROM Entry e JOIN e.contexts c WHERE c.name = :cName ORDER BY e.timestamp")
 public class Entry {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
@@ -20,14 +20,14 @@ public class Entry {
     private String mimeType;
     private String uri;
     private String text;
-    @ElementCollection
-    private List<String> contexts;
+    @ManyToMany(cascade = CascadeType.ALL)
+    private List<Context> contexts;
 
-    public List<String> getContexts() {
+    public List<Context> getContexts() {
         return contexts;
     }
 
-    public void setContexts(List<String> contexts) {
+    public void setContexts(List<Context> contexts) {
         this.contexts = contexts;
     }
 
