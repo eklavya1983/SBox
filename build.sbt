@@ -12,5 +12,4 @@ libraryDependencies += "org.xerial" % "sqlite-jdbc" % "3.7.2"
 
 libraryDependencies += "org.hibernate" % "hibernate-entitymanager" % "4.3.6.Final"
 
-
-unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/test" )  
+unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/test" )
