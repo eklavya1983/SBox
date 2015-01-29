@@ -90,7 +90,7 @@ class GoogleOAuthHelper {
     private String redirecUri;
     private final static String AUTH_EP = "https://accounts.google.com/o/oauth2/auth";
     private final static String TOKEN_EP = "https://www.googleapis.com/oauth2/v3/token";
-    private final static String USER_PROFILE_EP = "https://accounts.google.com/o/oauth2/auth";
+    private final static String USER_PROFILE_EP = "https://www.googleapis.com/plus/v1/people/me";
     private final static int REQUEST_TIMEOUT = 10000;
 
     GoogleOAuthHelper(String clientId, String clientSecret, String redirectUri) {
@@ -135,6 +135,7 @@ class GoogleOAuthHelper {
         wsResponse = WS.url(USER_PROFILE_EP)
                 .setHeader("Authorization", "Bearer " + accessToken)
                 .get().get(REQUEST_TIMEOUT);
+        Logger.info("person profile response is: " + new String(wsResponse.asByteArray()));
         jsonNode = wsResponse.asJson();
         String personId = jsonNode.get("id").asText();
         Logger.info("Id is: " + personId);
@@ -145,6 +146,9 @@ class GoogleOAuthHelper {
 }
 
 public class Application extends Controller {
+    // todo: Store this in cache for each user
+    static GoogleOAuthHelper authHelper;
+
     public static Result index() {
         return ok(index.render("Your new application is ready."));
     }
@@ -229,54 +233,55 @@ public class Application extends Controller {
 
 
     public static Result login() {
-        SimpleUriBuilder builder = new SimpleUriBuilder("https://accounts.google.com/o/oauth2/auth");
-        builder.addParameter("response_type", "code")
-                .addParameter("client_id", "719994656729-tvik9l3jlasi3hc0u5ll3t94d3rj9nbr.apps.googleusercontent.com")
-                .addParameter("redirect_uri", "http://localhost:9000/oauth2callback")
-                .addParameter("scope", "profile")
-                .addParameter("state", "SBoxState");
-        String authUrl = builder.toString();
-        Logger.info("url is: " + authUrl);
+       authHelper = new GoogleOAuthHelper("719994656729-tvik9l3jlasi3hc0u5ll3t94d3rj9nbr.apps.googleusercontent.com",
+                "MCRPRzei3bOiCPPzNjmKppF0",
+                "http://localhost:9000/oauth2callback");
+        return authHelper.getLoginResult();
 
-        return Results.redirect(authUrl);
+//        SimpleUriBuilder builder = new SimpleUriBuilder("https://accounts.google.com/o/oauth2/auth");
+//        builder.addParameter("response_type", "code")
+//                .addParameter("client_id", "719994656729-tvik9l3jlasi3hc0u5ll3t94d3rj9nbr.apps.googleusercontent.com")
+//                .addParameter("redirect_uri", "http://localhost:9000/oauth2callback")
+//                .addParameter("scope", "profile")
+//                .addParameter("state", "SBoxState");
+//        String authUrl = builder.toString();
+//        Logger.info("url is: " + authUrl);
+//
+//        return Results.redirect(authUrl);
     }
 
     public static Result oauth2callback()
     {
-        // TODO: verify the state value
-        /* Parse out the code */
-        String code = request().getQueryString("code");
-        /* Send a request to get access token */
-        QueryParamsBuilder builder = new QueryParamsBuilder();
-        builder.setQueryParameter("code", code)
-                .setQueryParameter("client_id", "719994656729-tvik9l3jlasi3hc0u5ll3t94d3rj9nbr.apps.googleusercontent.com")
-                .setQueryParameter("client_secret", "MCRPRzei3bOiCPPzNjmKppF0")
-                .setQueryParameter("redirect_uri", "http://localhost:9000/oauth2callback")
-                .setQueryParameter("grant_type", "authorization_code");
-                //.setQueryParameter("redirect_uri", "http://localhost:9000/tokencallback")
-        String postData = builder.toString();
-        WSResponse wsResponse = WS.url("https://www.googleapis.com/oauth2/v3/token")
-                .setContentType("application/x-www-form-urlencoded")
-                .post(postData).get(REQUEST_TIMEOUT);
-        JsonNode jsonNode = wsResponse.asJson();
-        String accessToken = jsonNode.get("access_token").asText();
+        String id = authHelper.handleOAuthCallback(request());
+        return ok(id);
 
-        /* We have access token.  Issue get to get the profile info */
-        wsResponse = WS.url("https://www.googleapis.com/plus/v1/people/me")
-                .setHeader("Authorization", "Bearer " + accessToken)
-                .get().get(REQUEST_TIMEOUT);
-        jsonNode = wsResponse.asJson();
-        String personId = jsonNode.get("id").asText();
-        Logger.info("Id is: " + personId);
-
-
-        return ok("Hello: " + personId);
-    }
-
-
-    public static Result tokencallback() {
-        String tokenResp = request().toString();
-        String body = request().body().asText();
-        return Results.TODO;
+//        // TODO: verify the state value
+//        /* Parse out the code */
+//        String code = request().getQueryString("code");
+//        /* Send a request to get access token */
+//        QueryParamsBuilder builder = new QueryParamsBuilder();
+//        builder.setQueryParameter("code", code)
+//                .setQueryParameter("client_id", "719994656729-tvik9l3jlasi3hc0u5ll3t94d3rj9nbr.apps.googleusercontent.com")
+//                .setQueryParameter("client_secret", "MCRPRzei3bOiCPPzNjmKppF0")
+//                .setQueryParameter("redirect_uri", "http://localhost:9000/oauth2callback")
+//                .setQueryParameter("grant_type", "authorization_code");
+//                //.setQueryParameter("redirect_uri", "http://localhost:9000/tokencallback")
+//        String postData = builder.toString();
+//        WSResponse wsResponse = WS.url("https://www.googleapis.com/oauth2/v3/token")
+//                .setContentType("application/x-www-form-urlencoded")
+//                .post(postData).get(REQUEST_TIMEOUT);
+//        JsonNode jsonNode = wsResponse.asJson();
+//        String accessToken = jsonNode.get("access_token").asText();
+//
+//        /* We have access token.  Issue get to get the profile info */
+//        wsResponse = WS.url("https://www.googleapis.com/plus/v1/people/me")
+//                .setHeader("Authorization", "Bearer " + accessToken)
+//                .get().get(REQUEST_TIMEOUT);
+//        jsonNode = wsResponse.asJson();
+//        String personId = jsonNode.get("id").asText();
+//        Logger.info("Id is: " + personId);
+//
+//
+//        return ok("Hello: " + personId);
     }
 }

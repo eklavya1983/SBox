@@ -6,7 +6,6 @@
 GET        /                    controllers.Application.index
 GET        /login               controllers.Application.login
 GET        /oauth2callback      controllers.Application.oauth2callback
-GET        /tokencallback       controllers.Application.tokencallback
 
 PUT        /entry               controllers.Application.insertEntry
 GET        /entry               controllers.Application.getEntry
